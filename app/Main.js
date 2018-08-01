@@ -258,19 +258,21 @@ define([
      */
     initializePolygonTimeRenderer: function (layer, time_field) {
 
-      const default_symbol = {
+      const default_symbol = layer.renderer.symbol.clone();
+
+      /*const default_symbol = {
         type: "simple-fill",
         style: "solid",
         color: Color.named.cyan,
-        outline: null /*{
+        outline: null /!*{
           type: "simple-line",
           style: "solid",
           color: Color.named.blue.concat(0.1),
           width: "1px",
           cap: "round",
           join: "round"
-        }*/
-      };
+        }*!/
+      };*/
 
       const one_hour = (1000 * 60 * 60);
       const one_day = (one_hour * 24);
