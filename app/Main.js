@@ -258,20 +258,25 @@ define([
      */
     initializePolygonTimeRenderer: function (layer, time_field) {
 
-      const default_symbol = layer.renderer.symbol.clone();
+      const default_layer_symbol = layer.renderer.symbol.clone();
 
+      // OPTION #1 //
+      //const default_symbol = default_layer_symbol;
+
+      // OPTION #2 //
+      const default_symbol = {
+        type: "simple-fill",
+        style: "solid",
+        color: default_layer_symbol.color,
+        outline: null
+      };
+
+      // OPTION #3 //
       /*const default_symbol = {
         type: "simple-fill",
         style: "solid",
-        color: Color.named.cyan,
-        outline: null /!*{
-          type: "simple-line",
-          style: "solid",
-          color: Color.named.blue.concat(0.1),
-          width: "1px",
-          cap: "round",
-          join: "round"
-        }*!/
+        color: Color.named.darkblue,
+        outline: null
       };*/
 
       const one_hour = (1000 * 60 * 60);
