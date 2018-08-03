@@ -153,13 +153,13 @@ define([
       const time_field = "YearCovenant";
 
       const covenants_layer = view.map.layers.find(layer => {
-        return (layer.title === "All Covenants by Year");
+        return (layer.title === "All Covenants by Year");  //  "All Covenants by Year"
       });
       covenants_layer.load().then(() => {
         covenants_layer.visible = false;
 
         const covenants_points_layer = view.map.layers.find(layer => {
-          return (layer.title === "All Covenants by Year as Points");
+          return (layer.title === "All Covenants by Year as Points");  //  "All Covenants by Year as Points"
         });
         covenants_points_layer.load().then(() => {
           covenants_points_layer.visible = false;
@@ -370,17 +370,17 @@ define([
               stops: [
                 {
                   label: "previous",
-                  size: 16,
+                  size: 9,
                   value: 0
                 },
                 {
                   label: "-one year",
-                  size: 32,
+                  size: 16,
                   value: date_time_value - (one_month * 12)
                 },
                 {
                   label: "now",
-                  size: 32,
+                  size: 16,
                   value: date_time_value
                 },
                 {
