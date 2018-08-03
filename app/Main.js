@@ -744,7 +744,6 @@ define([
             value = current_time_info.min.valueOf()
             //stopAnimation();
           }
-
           set_time(value);
 
           setTimeout(() => {
