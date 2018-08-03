@@ -150,30 +150,28 @@ define([
 
 
       // TIME FIELD //
-      const time_field = "YearCovenant";
+      const time_field = "Map_date"; //"YearCovenant";
 
       const covenants_layer = view.map.layers.find(layer => {
-        return (layer.title === "All Covenants by Year");  //  "All Covenants by Year"
+        return (layer.title === "All_Covenants_8_3_2018_V2");  //  "All Covenants by Year"
       });
       covenants_layer.load().then(() => {
         covenants_layer.visible = false;
 
         const covenants_points_layer = view.map.layers.find(layer => {
-          return (layer.title === "All Covenants by Year as Points");  //  "All Covenants by Year as Points"
+          return (layer.title === "All_Covenants_Centroids_8_3_2018_V2");  //  "All Covenants by Year as Points"
         });
         covenants_points_layer.load().then(() => {
           covenants_points_layer.visible = false;
-
-          //this.initializeHeatMap(view, covenants_points_layer);
-
+                    
           // GET TIME EXTENT //
           this.getLayerTimeExtent(covenants_layer, time_field).then((time_stats) => {
 
             // TIME EXTENT //
             const time_extent = {
               min: new Date(time_stats.min),
-              //max: new Date(time_stats.max)
-              max: new Date(Date.UTC(1953, 0))
+              max: new Date(time_stats.max)
+              //max: new Date(Date.UTC(1953, 0))
             };
 
             // const time_extent = {
@@ -337,7 +335,8 @@ define([
       //const default_symbol = layer.renderer.symbol.clone();
       const default_symbol = {
         type: "picture-marker",
-        url: "./assets/FireflyHybrid.png",
+        //url: "./assets/FireflyHybrid.png",
+        url: "./assets/FireflyCyanToBlueNoWhiteCenter.png",
         width: "16px",
         height: "16px"
       };
