@@ -213,8 +213,11 @@ define([
 
                 // ENABLE TIME WHEN LAYER IS READY //
                 watchUtils.whenFalseOnce(covenants_layerView, "updating", () => {
+                  // ENABLE TIME UI //
                   domClass.remove("time-input", "btn-disabled");
                   domClass.remove("play-pause-btn", "btn-disabled");
+                  // START ANIMATION //
+                  this.autoPlay();
                   //this._calcStats(view, covenants_layerView, time_field);
                 });
               });
@@ -605,9 +608,6 @@ define([
         countsByYearChart.render();
       });
 
-      // });
-      // });
-
     },
 
     /**
@@ -719,13 +719,13 @@ define([
 
       let animation;
 
-      function startAnimation() {
-        stopAnimation();
+      const _startAnimation = () => {
+        _stopAnimation();
         domClass.add("time-input", "btn-disabled");
-        animation = animate(parseFloat(time_input.value));
-      }
+        animation = _animate(parseFloat(time_input.value));
+      };
 
-      function stopAnimation() {
+      const _stopAnimation = () => {
         if(!animation) {
           return;
         }
@@ -734,9 +734,9 @@ define([
         domClass.remove("time-input", "btn-disabled");
         domClass.remove(play_pause_btn, "icon-ui-pause icon-ui-red");
         domClass.add(play_pause_btn, "icon-ui-play");
-      }
+      };
 
-      function animate(startValue) {
+      function _animate(startValue) {
         let animating = true;
         let value = startValue;
 
@@ -774,13 +774,15 @@ define([
       on(play_pause_btn, "click", () => {
         domClass.toggle(play_pause_btn, "icon-ui-play icon-ui-pause icon-ui-red");
         if(domClass.contains(play_pause_btn, "icon-ui-play")) {
-          stopAnimation();
+          _stopAnimation();
         } else {
-          startAnimation();
+          _startAnimation();
         }
       });
 
-
+      this.autoPlay = () => {
+        play_pause_btn.click();
+      };
     }
 
   });
