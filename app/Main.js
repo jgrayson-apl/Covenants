@@ -125,101 +125,103 @@ define([
      * @param view
      */
     viewReady: function (config, item, view) {
-      // view.goTo({ zoom: view.zoom + 1 }).then(() => {
+      view.goTo({ zoom: view.zoom + 1 }).then(() => {
 
-      // APP TITLE //
-      dom.byId("app-title").innerHTML = config.title;
-      view.ui.add("title-panel", { position: "top-left", index: 0 });
-      domClass.remove("title-panel", "hide");
+        // APP TITLE //
+        dom.byId("app-title").innerHTML = config.title;
+        view.ui.add("title-panel", { position: "top-left", index: 0 });
+        domClass.remove("title-panel", "hide");
 
-      // INFO PANEL //
-      view.ui.add("info-panel", { position: "top-right", index: 0 });
-      domClass.remove("info-panel", "hide");
+        // INFO PANEL //
+        view.ui.add("info-panel", { position: "top-right", index: 0 });
+        domClass.remove("info-panel", "hide");
 
-      // SUBDIVISION BOOKMARK //
-      this.initializeZoomToBookmark(view);
+        // SUBDIVISION BOOKMARK //
+        this.initializeZoomToBookmark(view);
 
-      // DOWN CONTAINER //
-      const down_container = dom.byId("bottom-container");
-      // PANEL TOGGLE //
-      const listToggleBtn = domConstruct.create("div", {
-        className: "panel-toggle-down icon-ui-down-arrow icon-ui-flush font-size-1",
-        title: "Toggle Panel"
-      }, view.root);
-      on(listToggleBtn, "click", () => {
-        // TOGGLE PANEL TOGGLE BTN //
-        query(".panel-toggle-down").toggleClass("icon-ui-down-arrow icon-ui-up-arrow");
-        // TOGGLE VISIBILITY OF CLOSABLE PANELS //
-        domClass.toggle(down_container, "collapsed");
-      });
-      listToggleBtn.click();
-
-
-      // TIME FIELD //
-      const time_field = "map_date"; //"YearCovenant";
-
-      const covenants_layer = view.map.layers.find(layer => {
-        return (layer.title === "All_Covenants_8_3_2018_V2");  //  "All Covenants by Year"
-      });
-      covenants_layer.load().then(() => {
-        view.whenLayerView(covenants_layer).then((covenants_layerView) => {
-          covenants_layer.visible = false;
-
-          const covenants_points_layer = view.map.layers.find(layer => {
-            return (layer.title === "All_Covenants_Centroids_8_3_2018_V2");  //  "All Covenants by Year as Points"
-          });
-          covenants_points_layer.load().then(() => {
-            covenants_points_layer.visible = false;
-
-            // GET TIME EXTENT //
-            this.getLayerTimeExtent(covenants_layer, time_field).then((time_stats) => {
-
-              // TIME EXTENT //
-              const time_extent = {
-                min: new Date(time_stats.min),
-                max: new Date(time_stats.max)
-              };
-
-              // INITIALIZE RENDERERS //
-              this.updatePolygonTimeRenderer = this.initializePolygonTimeRenderer(covenants_layer, time_field);
-              this.updatePointTimeRenderer = this.initializePointTimeRenderer(covenants_points_layer, time_field);
-              this.highlightByYear = this.initializeHighlight(covenants_layerView, time_field);
+        // DOWN CONTAINER //
+        const down_container = dom.byId("bottom-container");
+        // PANEL TOGGLE //
+        const listToggleBtn = domConstruct.create("div", {
+          className: "panel-toggle-down icon-ui-down-arrow icon-ui-flush font-size-1",
+          title: "Toggle Panel"
+        }, view.root);
+        on(listToggleBtn, "click", () => {
+          // TOGGLE PANEL TOGGLE BTN //
+          query(".panel-toggle-down").toggleClass("icon-ui-down-arrow icon-ui-up-arrow");
+          // TOGGLE VISIBILITY OF CLOSABLE PANELS //
+          domClass.toggle(down_container, "collapsed");
+        });
+        listToggleBtn.click();
 
 
-              // SET INITIAL RENDERER USING MIN TIME //
-              this.updatePolygonTimeRenderer(time_extent.min);
-              this.updatePointTimeRenderer(time_extent.min);
+        // TIME FIELD //
+        const time_field = "map_date"; //"YearCovenant";
 
-              // UPDATE RENDERERS WHEN TIME CHANGES //
-              this.on("time-change", evt => {
-                this.updatePolygonTimeRenderer(evt.dateTimeValue);
-                this.updatePointTimeRenderer(evt.dateTimeValue);
-                if(this.clearHighlight) {
-                  this.clearHighlight();
-                }
-                // if(this.highlightByYear) {
-                //   this.highlightByYear(evt.dateTimeValue);
-                // }
-              });
+        const covenants_layer = view.map.layers.find(layer => {
+          return (layer.title === "All_Covenants_8_3_2018_V2");  //  "All Covenants by Year"
+        });
+        covenants_layer.load().then(() => {
+          view.whenLayerView(covenants_layer).then((covenants_layerView) => {
+            covenants_layer.visible = false;
 
-              // GET COUNTS BY YEAR CHART //
-              this.initializeYearChart(view, covenants_layer, time_field);
-              // INITIALIZE TIME FILTER //
-              this.initializeTimeFilter(view, time_extent);
+            const covenants_points_layer = view.map.layers.find(layer => {
+              return (layer.title === "All_Covenants_Centroids_8_3_2018_V2");  //  "All Covenants by Year as Points"
+            });
+            covenants_points_layer.load().then(() => {
+              covenants_points_layer.visible = false;
 
-              // DISPLAY LAYERS //
-              covenants_layer.visible = true;
-              covenants_points_layer.visible = true;
+              // GET TIME EXTENT //
+              this.getLayerTimeExtent(covenants_layer, time_field).then((time_stats) => {
 
-              // ENABLE TIME WHEN LAYER IS READY //
-              watchUtils.whenFalseOnce(covenants_layerView, "updating", () => {
-                domClass.remove("time-input-group", "btn-disabled");
+                // TIME EXTENT //
+                const time_extent = {
+                  min: new Date(time_stats.min),
+                  max: new Date(time_stats.max)
+                };
+
+                // INITIALIZE RENDERERS //
+                this.updatePolygonTimeRenderer = this.initializePolygonTimeRenderer(covenants_layer, time_field);
+                this.updatePointTimeRenderer = this.initializePointTimeRenderer(covenants_points_layer, time_field);
+                this.highlightByYear = this.initializeHighlight(covenants_layerView, time_field);
+
+
+                // SET INITIAL RENDERER USING MIN TIME //
+                this.updatePolygonTimeRenderer(time_extent.min);
+                this.updatePointTimeRenderer(time_extent.min);
+
+                // UPDATE RENDERERS WHEN TIME CHANGES //
+                this.on("time-change", evt => {
+                  this.updatePolygonTimeRenderer(evt.dateTimeValue);
+                  this.updatePointTimeRenderer(evt.dateTimeValue);
+                  if(this.clearHighlight) {
+                    this.clearHighlight();
+                  }
+                  // if(this.highlightByYear) {
+                  //   this.highlightByYear(evt.dateTimeValue);
+                  // }
+                });
+
+                // GET COUNTS BY YEAR CHART //
+                this.initializeYearChart(view, covenants_layer, time_field);
+                // INITIALIZE TIME FILTER //
+                this.initializeTimeFilter(view, time_extent);
+
+                // DISPLAY LAYERS //
+                covenants_layer.visible = true;
+                covenants_points_layer.visible = true;
+
+                // ENABLE TIME WHEN LAYER IS READY //
+                watchUtils.whenFalseOnce(covenants_layerView, "updating", () => {
+                  domClass.remove("time-input", "btn-disabled");
+                  domClass.remove("play-pause-btn", "btn-disabled");
+                  //this._calcStats(view, covenants_layerView, time_field);
+                });
               });
             });
           });
         });
       });
-      //});
 
     },
 
@@ -434,13 +436,14 @@ define([
     /**
      *
      * @param view
+     * @param layerView
+     * @param time_field
+     * @private
      */
-    initializeYearChart: function (view) {
+    _calcStats: function (view, layerView, time_field) {
 
-      // watchUtils.whenFalseOnce(layerView, "updating", () => {
-
-      /*const year_counts_handles = [];
-      for (let year = 1910; year <= 1950; year++) {
+      const year_counts_handles = [];
+      for (let year = 1910; year <= 1955; year++) {
         const count_query = layerView.layer.createQuery();
         count_query.outFields = [time_field];
         count_query.where = `(${time_field} >= date '${(new Date(Date.parse(year))).toAGSDateTimeString()}') AND (${time_field} < date '${(new Date(Date.parse(year + 1))).toAGSDateTimeString()}')`;
@@ -451,36 +454,25 @@ define([
             tooltip: `${year}: ${number.format(count)}`
           };
         }));
-      }*/
+      }
 
-      // promiseUtils.eachAlways(year_counts_handles).then(year_counts_results => {
+      promiseUtils.eachAlways(year_counts_handles).then(year_counts_results => {
+        let total = 0;
+        const year_counts = year_counts_results.map(year_counts_result => {
+          const year_count = year_counts_result.value;
+          year_count.total = (total += year_count.y);
+          return year_count;
+        });
+        console.info(JSON.stringify(year_counts));
+      });
 
-      /*const year_counts = year_counts_results.map(year_counts_result => {
-        return year_counts_result.value;
-      });*/
+    },
 
-      // GET UNIQUE LIST OF YEARS WITH COUNTS //
-      //return uniqueValues({ layer: layer, field: time_field }).then((uv_results) => {
-
-      // YEAR COUNTS //
-      /*const year_counts = uv_results.uniqueValueInfos.reduce((valid_values, uniqueValueInfo) => {
-
-        if(uniqueValueInfo.value) {
-          const year = (new Date(uniqueValueInfo.value)).getUTCFullYear();
-          valid_values.push({
-            x: year,
-            y: uniqueValueInfo.count,
-            tooltip: `${year}: ${number.format(uniqueValueInfo.count)}`
-          });
-        }
-
-        return valid_values;
-      }, []);*/
-
-      // SORT BY YEAR //
-      /*year_counts.sort((a, b) => {
-        return (a.x - b.x);
-      });*/
+    /**
+     *
+     * @param view
+     */
+    initializeYearChart: function (view) {
 
       let year_counts = JSON.parse(CountsByYearText).year_counts;
 
@@ -604,22 +596,11 @@ define([
         const year_index = year_counts.findIndex(year_count => {
           return (year_count.x === year);
         });
-
         const year_count = year_counts[year_index];
-        const chart_data = year_counts.slice(0, year_index+1);
+        const chart_data = year_counts.slice(0, year_index + 1);
 
         count_node.innerHTML = number.format(year_count.total);
         countsByYearChart.updateSeries("CountsByYear", chart_data);
-
-        /*const year_info = year_counts.reduce((info, year_count) => {
-          if(year_count.x <= year) {
-            info.year_counts.push(year_count);
-            info.total += year_count.y;
-          }
-          return info;
-        }, { year_counts: [], total: 0 });*/
-        //count_node.innerHTML = number.format(year_info.total);
-        //countsByYearChart.updateSeries("CountsByYear", year_info.year_counts);
 
         countsByYearChart.render();
       });
@@ -740,7 +721,7 @@ define([
 
       function startAnimation() {
         stopAnimation();
-        domClass.add("time-input-group", "btn-disabled");
+        domClass.add("time-input", "btn-disabled");
         animation = animate(parseFloat(time_input.value));
       }
 
@@ -750,7 +731,7 @@ define([
         }
         animation.remove();
         animation = null;
-        domClass.remove("time-input-group", "btn-disabled");
+        domClass.remove("time-input", "btn-disabled");
         domClass.remove(play_pause_btn, "icon-ui-pause icon-ui-red");
         domClass.add(play_pause_btn, "icon-ui-play");
       }
@@ -798,7 +779,6 @@ define([
           startAnimation();
         }
       });
-
 
 
     }
