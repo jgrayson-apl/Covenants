@@ -21,6 +21,7 @@
     "fetch": true
   },
   "urlParams": [
+    "fps",
     "appid",
     "basemapUrl",
     "basemapReferenceUrl",

@@ -718,6 +718,7 @@ define([
       //
 
       let animation;
+      let animation_fps = this.base.config.fps || 8;
 
       const _startAnimation = () => {
         _stopAnimation();
@@ -758,7 +759,7 @@ define([
 
           setTimeout(() => {
             requestAnimationFrame(frame);
-          }, 1000 / 8);
+          }, 1000 / animation_fps);
         };
 
         frame();
