@@ -18,6 +18,7 @@ define([
   "dojo/_base/declare",
   "ApplicationBase/ApplicationBase",
   "dojo/i18n!./nls/resources",
+  "dojo/text!./CountsByYear.json",
   "ApplicationBase/support/itemUtils",
   "ApplicationBase/support/domHelper",
   "dojo/dom",
@@ -30,9 +31,11 @@ define([
   "dojo/_base/Color",
   "dojo/colors",
   "esri/core/Evented",
+  "esri/core/promiseUtils",
   "esri/core/watchUtils",
   "esri/layers/FeatureLayer",
   "esri/geometry/Extent",
+  "esri/tasks/support/Query",
   "esri/tasks/support/StatisticDefinition",
   "esri/renderers/smartMapping/statistics/uniqueValues",
   "dojox/charting/Chart",
@@ -40,10 +43,10 @@ define([
   "dojox/charting/plot2d/Grid",
   "dojox/charting/themes/Bahamation",
   "dojox/charting/plot2d/Columns",
-  "dojox/charting/action2d/Tooltip",
-], function (declare, ApplicationBase, i18n, itemUtils, domHelper,
+  "dojox/charting/action2d/Tooltip"
+], function (declare, ApplicationBase, i18n, CountsByYearText, itemUtils, domHelper,
              dom, domClass, domConstruct, locale, number, on, query, Color, colors,
-             Evented, watchUtils, FeatureLayer, Extent, StatisticDefinition, uniqueValues,
+             Evented, promiseUtils, watchUtils, FeatureLayer, Extent, Query, StatisticDefinition, uniqueValues,
              Chart, Default, Grid, ChartTheme, Columns, ChartTooltip) {
 
 
@@ -107,7 +110,9 @@ define([
         viewProperties.map = map;
         return itemUtils.createView(viewProperties).then((view) => {
           domClass.remove(document.body, this.CSS.loading);
-          this.viewReady(config, firstItem, view);
+          view.when(() => {
+            this.viewReady(config, firstItem, view);
+          });
         });
       });
 
@@ -120,6 +125,7 @@ define([
      * @param view
      */
     viewReady: function (config, item, view) {
+      // view.goTo({ zoom: view.zoom + 1 }).then(() => {
 
       // APP TITLE //
       dom.byId("app-title").innerHTML = config.title;
@@ -150,70 +156,70 @@ define([
 
 
       // TIME FIELD //
-      const time_field = "Map_date"; //"YearCovenant";
+      const time_field = "map_date"; //"YearCovenant";
 
       const covenants_layer = view.map.layers.find(layer => {
         return (layer.title === "All_Covenants_8_3_2018_V2");  //  "All Covenants by Year"
       });
       covenants_layer.load().then(() => {
-        covenants_layer.visible = false;
+        view.whenLayerView(covenants_layer).then((covenants_layerView) => {
+          covenants_layer.visible = false;
 
-        const covenants_points_layer = view.map.layers.find(layer => {
-          return (layer.title === "All_Covenants_Centroids_8_3_2018_V2");  //  "All Covenants by Year as Points"
-        });
-        covenants_points_layer.load().then(() => {
-          covenants_points_layer.visible = false;
-                    
-          // GET TIME EXTENT //
-          this.getLayerTimeExtent(covenants_layer, time_field).then((time_stats) => {
+          const covenants_points_layer = view.map.layers.find(layer => {
+            return (layer.title === "All_Covenants_Centroids_8_3_2018_V2");  //  "All Covenants by Year as Points"
+          });
+          covenants_points_layer.load().then(() => {
+            covenants_points_layer.visible = false;
 
-            // TIME EXTENT //
-            const time_extent = {
-              min: new Date(time_stats.min),
-              max: new Date(time_stats.max)
-              //max: new Date(Date.UTC(1953, 0))
-            };
+            // GET TIME EXTENT //
+            this.getLayerTimeExtent(covenants_layer, time_field).then((time_stats) => {
 
-            // const time_extent = {
-            //   min: new Date(Date.parse("1/1/1911")),
-            //   max: new Date(Date.parse("1/1/1953"))
-            // };
+              // TIME EXTENT //
+              const time_extent = {
+                min: new Date(time_stats.min),
+                max: new Date(time_stats.max)
+              };
 
-            // INITIALIZE RENDERERS //
-            this.updatePolygonTimeRenderer = this.initializePolygonTimeRenderer(covenants_layer, time_field);
-            this.updatePointTimeRenderer = this.initializePointTimeRenderer(covenants_points_layer, time_field);
-            view.whenLayerView(covenants_layer).then((covenants_layerView) => {
+              // INITIALIZE RENDERERS //
+              this.updatePolygonTimeRenderer = this.initializePolygonTimeRenderer(covenants_layer, time_field);
+              this.updatePointTimeRenderer = this.initializePointTimeRenderer(covenants_points_layer, time_field);
               this.highlightByYear = this.initializeHighlight(covenants_layerView, time_field);
-            });
 
-            // SET INITIAL RENDERER USING MIN TIME //
-            this.updatePolygonTimeRenderer(time_extent.min);
-            this.updatePointTimeRenderer(time_extent.min);
 
-            // UPDATE RENDERERS WHEN TIME CHANGES //
-            this.on("time-change", evt => {
-              this.updatePolygonTimeRenderer(evt.dateTimeValue);
-              this.updatePointTimeRenderer(evt.dateTimeValue);
-              if(this.clearHighlight) {
-                this.clearHighlight();
-              }
-              // if(this.highlightByYear) {
-              //   this.highlightByYear(evt.dateTimeValue);
-              // }
-            });
+              // SET INITIAL RENDERER USING MIN TIME //
+              this.updatePolygonTimeRenderer(time_extent.min);
+              this.updatePointTimeRenderer(time_extent.min);
 
-            // DISPLAY LAYERS //
-            covenants_layer.visible = true;
-            covenants_points_layer.visible = true;
+              // UPDATE RENDERERS WHEN TIME CHANGES //
+              this.on("time-change", evt => {
+                this.updatePolygonTimeRenderer(evt.dateTimeValue);
+                this.updatePointTimeRenderer(evt.dateTimeValue);
+                if(this.clearHighlight) {
+                  this.clearHighlight();
+                }
+                // if(this.highlightByYear) {
+                //   this.highlightByYear(evt.dateTimeValue);
+                // }
+              });
 
-            // GET COUNTS BY YEAR CHART //
-            this.initializeYearChart(view, covenants_layer, time_field).then(() => {
+              // GET COUNTS BY YEAR CHART //
+              this.initializeYearChart(view, covenants_layer, time_field);
               // INITIALIZE TIME FILTER //
               this.initializeTimeFilter(view, time_extent);
+
+              // DISPLAY LAYERS //
+              covenants_layer.visible = true;
+              covenants_points_layer.visible = true;
+
+              // ENABLE TIME WHEN LAYER IS READY //
+              watchUtils.whenFalseOnce(covenants_layerView, "updating", () => {
+                domClass.remove("time-input-group", "btn-disabled");
+              });
             });
           });
         });
       });
+      //});
 
     },
 
@@ -428,174 +434,198 @@ define([
     /**
      *
      * @param view
-     * @param layer
-     * @param time_field
      */
-    initializeYearChart: function (view, layer, time_field) {
+    initializeYearChart: function (view) {
+
+      // watchUtils.whenFalseOnce(layerView, "updating", () => {
+
+      /*const year_counts_handles = [];
+      for (let year = 1910; year <= 1950; year++) {
+        const count_query = layerView.layer.createQuery();
+        count_query.outFields = [time_field];
+        count_query.where = `(${time_field} >= date '${(new Date(Date.parse(year))).toAGSDateTimeString()}') AND (${time_field} < date '${(new Date(Date.parse(year + 1))).toAGSDateTimeString()}')`;
+        year_counts_handles.push(layerView.queryFeatureCount(count_query).then((count) => {
+          return {
+            x: year,
+            y: count,
+            tooltip: `${year}: ${number.format(count)}`
+          };
+        }));
+      }*/
+
+      // promiseUtils.eachAlways(year_counts_handles).then(year_counts_results => {
+
+      /*const year_counts = year_counts_results.map(year_counts_result => {
+        return year_counts_result.value;
+      });*/
 
       // GET UNIQUE LIST OF YEARS WITH COUNTS //
-      return uniqueValues({ layer: layer, field: time_field }).then((uv_results) => {
+      //return uniqueValues({ layer: layer, field: time_field }).then((uv_results) => {
 
-        // YEAR COUNTS //
-        const year_counts = uv_results.uniqueValueInfos.reduce((valid_values, uniqueValueInfo) => {
+      // YEAR COUNTS //
+      /*const year_counts = uv_results.uniqueValueInfos.reduce((valid_values, uniqueValueInfo) => {
 
-          if(uniqueValueInfo.value) {
-            const year = (new Date(uniqueValueInfo.value)).getUTCFullYear();
-            if(year < 1953) {
-              valid_values.push({
-                x: year,
-                y: uniqueValueInfo.count,
-                tooltip: `${year}: ${number.format(uniqueValueInfo.count)}`
-              });
-            }
+        if(uniqueValueInfo.value) {
+          const year = (new Date(uniqueValueInfo.value)).getUTCFullYear();
+          valid_values.push({
+            x: year,
+            y: uniqueValueInfo.count,
+            tooltip: `${year}: ${number.format(uniqueValueInfo.count)}`
+          });
+        }
+
+        return valid_values;
+      }, []);*/
+
+      // SORT BY YEAR //
+      /*year_counts.sort((a, b) => {
+        return (a.x - b.x);
+      });*/
+
+      let year_counts = JSON.parse(CountsByYearText).year_counts;
+
+      const last_year = year_counts[year_counts.length - 1].x;
+
+      const fontColor = "#ccc";
+      const lineStroke = { color: "#2493f2", width: 2.0 };
+
+      const countsByYearChart = new Chart("chart-node", { margins: { l: 35, t: 10, r: 10, b: 10 } });
+      countsByYearChart.setTheme(ChartTheme);
+      countsByYearChart.fill = countsByYearChart.theme.plotarea.fill = "transparent";
+
+      countsByYearChart.addAxis("x", {
+        title: "Year",
+        titleGap: 5,
+        titleOrientation: "away",
+        titleFontColor: fontColor,
+        max: last_year,
+        natural: true,
+        fixUpper: "none",
+        minorTicks: false,
+        majorTick: lineStroke,
+        stroke: lineStroke,
+        labelFunc: (text, value, precision) => {
+          return value;
+        },
+        titleFont: "normal normal normal 13pt Avenir Next W00",
+        font: "normal normal normal 9pt Avenir Next W00",
+        fontColor: fontColor
+      });
+
+      countsByYearChart.addAxis("y", {
+        title: "Count",
+        titleGap: 5,
+        titleFontColor: fontColor,
+        max: 1000,
+        vertical: true,
+        includeZero: true,
+        majorTick: lineStroke,
+        gap: 4,
+        stroke: lineStroke,
+        titleFont: "normal normal normal 13pt Avenir Next W00",
+        font: "normal normal normal 7pt Avenir Next W00",
+        fontColor: fontColor
+      });
+
+      /*countsByYearChart.addPlot("grid", {
+                type: Grid,
+                hMajorLines: true,
+                hMinorLines: true,
+                vMajorLines: false,
+                vMinorLines: false,
+                majorHLine: {
+                  color: "#ddd",
+                  width: 0.5
+                },
+                minorHLine: {
+                  color: "#ddd",
+                  width: 0.5
+                }
+              });*/
+
+      countsByYearChart.addPlot("default", {
+        type: Columns,
+        gap: 2,
+        precision: 1
+      });
+
+      countsByYearChart.addSeries("CountsByYear", year_counts, {
+        stroke: { color: "#444", width: 1.2 },
+        fill: {
+          type: "linear",
+          space: "plot",
+          x1: 50, y1: 0, x2: 50, y2: 100,
+          colors: [
+            {
+              offset: 0.00,
+              color: Color.named.white
+            },
+            {
+              offset: 0.5,
+              color: Color.named.cyan
+            },
+            {
+              offset: 1.00,
+              color: new Color([36, 147, 242])
+              //color: new Color([0, 121, 193, 0.5])
+            },
+          ]
+        }
+      });
+
+      new ChartTooltip(countsByYearChart, "default");
+
+      countsByYearChart.render();
+
+      view.on("resize", () => {
+        countsByYearChart.resize();
+      });
+
+      // https://stackoverflow.com/questions/20350527/how-to-apply-click-events-on-axis-in-dojo-graph
+      countsByYearChart.connectToPlot("default", (evt) => {
+        switch (evt.type) {
+          case "onclick":
+            const data = evt.run.data[evt.index];
+            this.highlightByYear(+data.x);
+            break;
+          default:
+            this.clearHighlight();
+        }
+      });
+
+
+      //
+      // UPDATE CHART AND COUNT NODE WHEN TIME CHANGES //
+      //
+      const count_node = dom.byId("count-node");
+      this.on("time-change", evt => {
+        const year = (new Date(evt.dateTimeValue)).getUTCFullYear();
+
+        const year_index = year_counts.findIndex(year_count => {
+          return (year_count.x === year);
+        });
+
+        const year_count = year_counts[year_index];
+        const chart_data = year_counts.slice(0, year_index+1);
+
+        count_node.innerHTML = number.format(year_count.total);
+        countsByYearChart.updateSeries("CountsByYear", chart_data);
+
+        /*const year_info = year_counts.reduce((info, year_count) => {
+          if(year_count.x <= year) {
+            info.year_counts.push(year_count);
+            info.total += year_count.y;
           }
-
-          return valid_values;
-        }, []);
-
-        // SORT BY YEAR //
-        year_counts.sort((a, b) => {
-          return (a.x - b.x);
-        });
-
-        //
-        // TODO: PRE-CALC THESE SO WE DON'T HAVE TO DO THEM EVERY TIME...
-        //
-
-        const last_year = year_counts[year_counts.length - 1].x;
-
-        const fontColor = "#ccc";
-        const lineStroke = { color: "#2493f2", width: 2.0 };
-
-        const countsByYearChart = new Chart("chart-node", { margins: { l: 35, t: 10, r: 10, b: 10 } });
-        countsByYearChart.setTheme(ChartTheme);
-        countsByYearChart.fill = countsByYearChart.theme.plotarea.fill = "transparent";
-
-        countsByYearChart.addAxis("x", {
-          title: "Year",
-          titleGap: 5,
-          titleOrientation: "away",
-          titleFontColor: fontColor,
-          max: last_year,
-          natural: true,
-          fixUpper: "none",
-          minorTicks: false,
-          majorTick: lineStroke,
-          stroke: lineStroke,
-          labelFunc: (text, value, precision) => {
-            return value;
-          },
-          titleFont: "normal normal normal 13pt Avenir Next W00",
-          font: "normal normal normal 9pt Avenir Next W00",
-          fontColor: fontColor
-        });
-
-        countsByYearChart.addAxis("y", {
-          title: "Count",
-          titleGap: 5,
-          titleFontColor: fontColor,
-          max: 1000,
-          vertical: true,
-          includeZero: true,
-          majorTick: lineStroke,
-          gap: 4,
-          stroke: lineStroke,
-          titleFont: "normal normal normal 13pt Avenir Next W00",
-          font: "normal normal normal 7pt Avenir Next W00",
-          fontColor: fontColor
-        });
-
-        /*countsByYearChart.addPlot("grid", {
-                  type: Grid,
-                  hMajorLines: true,
-                  hMinorLines: true,
-                  vMajorLines: false,
-                  vMinorLines: false,
-                  majorHLine: {
-                    color: "#ddd",
-                    width: 0.5
-                  },
-                  minorHLine: {
-                    color: "#ddd",
-                    width: 0.5
-                  }
-                });*/
-
-        countsByYearChart.addPlot("default", {
-          type: Columns,
-          gap: 2,
-          precision: 1
-        });
-
-        countsByYearChart.addSeries("CountsByYear", year_counts, {
-          stroke: { color: "#444", width: 1.2 },
-          fill: {
-            type: "linear",
-            space: "plot",
-            x1: 50, y1: 0, x2: 50, y2: 100,
-            colors: [
-              {
-                offset: 0.00,
-                color: Color.named.white
-              },
-              {
-                offset: 0.5,
-                color: Color.named.cyan
-              },
-              {
-                offset: 1.00,
-                color: new Color([36, 147, 242])
-                //color: new Color([0, 121, 193, 0.5])
-              },
-            ]
-          }
-        });
-
-        new ChartTooltip(countsByYearChart, "default");
+          return info;
+        }, { year_counts: [], total: 0 });*/
+        //count_node.innerHTML = number.format(year_info.total);
+        //countsByYearChart.updateSeries("CountsByYear", year_info.year_counts);
 
         countsByYearChart.render();
-
-        view.on("resize", () => {
-          countsByYearChart.resize();
-        });
-
-        // https://stackoverflow.com/questions/20350527/how-to-apply-click-events-on-axis-in-dojo-graph
-        countsByYearChart.connectToPlot("default", (evt) => {
-          switch (evt.type) {
-            case "onclick":
-              const data = evt.run.data[evt.index];
-              this.highlightByYear(+data.x);
-              break;
-            default:
-              this.clearHighlight();
-          }
-        });
-
-
-        //
-        // UPDATE CHART AND COUNT NODE WHEN TIME CHANGES //
-        //
-        const count_node = dom.byId("count-node");
-        this.on("time-change", evt => {
-          const year = (new Date(evt.dateTimeValue)).getUTCFullYear();
-
-          //
-          // TODO: PRE-CALC THESE SO WE DON'T HAVE TO DO THEM EVERY TIME...
-          //
-          const year_info = year_counts.reduce((info, year_count) => {
-            if(year_count.x <= year) {
-              info.year_counts.push(year_count);
-              info.total += year_count.y;
-            }
-            return info;
-          }, { year_counts: [], total: 0 });
-
-          count_node.innerHTML = number.format(year_info.total);
-
-          countsByYearChart.updateSeries("CountsByYear", year_info.year_counts);
-          countsByYearChart.render();
-        });
       });
+
+      // });
+      // });
 
     },
 
@@ -682,7 +712,6 @@ define([
       time_input.min = current_time_info.min.valueOf();
       time_input.max = current_time_info.max.valueOf();
       time_input.valueAsNumber = time_input.min;
-      domClass.remove(time_input, "btn-disabled");
 
       on(time_input, "input", () => {
         update_time_filter();
@@ -711,7 +740,7 @@ define([
 
       function startAnimation() {
         stopAnimation();
-        domClass.add(time_input, "btn-disabled");
+        domClass.add("time-input-group", "btn-disabled");
         animation = animate(parseFloat(time_input.value));
       }
 
@@ -721,7 +750,7 @@ define([
         }
         animation.remove();
         animation = null;
-        domClass.remove(time_input, "btn-disabled");
+        domClass.remove("time-input-group", "btn-disabled");
         domClass.remove(play_pause_btn, "icon-ui-pause icon-ui-red");
         domClass.add(play_pause_btn, "icon-ui-play");
       }
@@ -768,7 +797,9 @@ define([
         } else {
           startAnimation();
         }
-      })
+      });
+
+
 
     }
 
