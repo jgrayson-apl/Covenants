@@ -41,6 +41,7 @@ body {
 }
 
 #view-container {
+  position    : relative;
   padding     : 0;
   margin      : 0;
   width       : 100%;
@@ -54,6 +55,19 @@ body {
 #view-container .esri-view-root {
   width  : 100%;
   height : 100%;
+}
+
+#logo {
+  position   : absolute;
+  bottom     : 15px;
+  right      : 0;
+  opacity    : 0.5;
+  transition : opacity 0.5s linear;
+}
+
+#logo:hover {
+  opacity    : 1.0;
+  transition : opacity 0.5s linear;
 }
 
 #bottom-container {
